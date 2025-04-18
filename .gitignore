@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Large installation files
+*.exe
+*.msi
+*.apk
+*.dmg
+*.iso
+*.zip
+*.tar.gz
+/android/app/src/Downloads/
