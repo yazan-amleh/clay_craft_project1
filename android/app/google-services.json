@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "731122168655",
+    "project_id": "claycraft-a1124",
+    "storage_bucket": "claycraft-a1124.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731122168655:android:020a9fc9a1a1ac1a3b8b3a",
+        "android_client_info": {
+          "package_name": "com.example.clay_craft_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDajweDtP97DkkxzbgFIIXA_sOzKj14nec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

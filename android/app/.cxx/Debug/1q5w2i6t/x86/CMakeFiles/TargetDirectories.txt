@@ -1,0 +1,2 @@
+C:/Users/DELL/StudioProjects/clay_craft_project/android/app/.cxx/Debug/1q5w2i6t/x86/CMakeFiles/edit_cache.dir
+C:/Users/DELL/StudioProjects/clay_craft_project/android/app/.cxx/Debug/1q5w2i6t/x86/CMakeFiles/rebuild_cache.dir
