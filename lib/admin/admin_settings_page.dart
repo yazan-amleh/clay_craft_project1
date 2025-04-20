@@ -5,14 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:clay_craft_project/services/auth_service.dart';
 import 'dart:developer' as developer;
 
-class TwelfthPage extends StatefulWidget {
-  const TwelfthPage({super.key});
+class AdminSettingsPage extends StatefulWidget {
+  const AdminSettingsPage({super.key});
 
   @override
-  State<TwelfthPage> createState() => _TwelfthPageState();
+  State<AdminSettingsPage> createState() => _AdminSettingsPageState();
 }
 
-class _TwelfthPageState extends State<TwelfthPage> {
+class _AdminSettingsPageState extends State<AdminSettingsPage> {
   bool _isLoading = false;
   Map<String, dynamic>? _userData;
   String _currentCurrency = 'JOD';
@@ -21,7 +21,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
   void initState() {
     super.initState();
     _loadUserData();
-    developer.log('Initializing profile page', name: 'profile.page');
+    developer.log('Initializing admin settings page', name: 'admin.settings');
   }
 
   Future<void> _loadUserData() async {
@@ -33,7 +33,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final userData = await authService.getCurrentUserData();
       
-      developer.log('User data loaded: ${userData != null}', name: 'profile.page');
+      developer.log('Admin data loaded: ${userData != null}', name: 'admin.settings');
       
       if (mounted) {
         setState(() {
@@ -42,7 +42,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
         });
       }
     } catch (e) {
-      developer.log('Error loading user data: $e', name: 'profile.page', error: e);
+      developer.log('Error loading admin data: $e', name: 'admin.settings', error: e);
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -143,7 +143,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                   Navigator.of(context).pop();
                 }
               } catch (e) {
-                developer.log('Error updating user profile: $e', name: 'profile.page', error: e);
+                developer.log('Error updating admin profile: $e', name: 'admin.settings', error: e);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('حدث خطأ: $e')),
@@ -241,7 +241,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                   Navigator.of(context).pop();
                 }
               } catch (e) {
-                developer.log('Error changing password: $e', name: 'profile.page', error: e);
+                developer.log('Error changing admin password: $e', name: 'admin.settings', error: e);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('حدث خطأ: $e')),
@@ -306,53 +306,47 @@ class _TwelfthPageState extends State<TwelfthPage> {
     );
   }
 
-  void _showPrivacyDialog() {
+  void _showAppSettingsDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('الخصوصية'),
+        title: const Text('إعدادات التطبيق'),
         content: const SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'سياسة الخصوصية',
+                'إعدادات التطبيق',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'نحن نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية. نحن نجمع فقط المعلومات الضرورية لتقديم خدماتنا وتحسين تجربتك.',
-                style: TextStyle(fontSize: 14),
               ),
               SizedBox(height: 16),
               Text(
-                'البيانات التي نجمعها:',
+                'خيارات الإشعارات:',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
               ),
               SizedBox(height: 8),
-              Text('• معلومات الحساب (الاسم، البريد الإلكتروني، رقم الهاتف)'),
-              Text('• بيانات الطلبات والمشتريات'),
-              Text('• معلومات الجهاز والاستخدام'),
+              Text('• إرسال إشعارات للعملاء عند تغيير حالة الطلب'),
+              Text('• إرسال إشعارات للمسؤولين عند وصول طلب جديد'),
+              Text('• إرسال إشعارات عند إضافة منتج جديد'),
               SizedBox(height: 16),
               Text(
-                'كيف نستخدم بياناتك:',
+                'خيارات العرض:',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
               ),
               SizedBox(height: 8),
-              Text('• تقديم وتحسين خدماتنا'),
-              Text('• معالجة الطلبات والدفعات'),
-              Text('• التواصل معك بخصوص طلباتك'),
-              Text('• تحسين تجربة المستخدم'),
+              Text('• عرض المنتجات المميزة في الصفحة الرئيسية'),
+              Text('• عرض المنتجات الجديدة في الصفحة الرئيسية'),
+              Text('• عرض المنتجات الأكثر مبيعاً'),
             ],
           ),
         ),
@@ -391,12 +385,12 @@ class _TwelfthPageState extends State<TwelfthPage> {
                         Navigator.of(context).pop(); // إغلاق الحوار
                         Navigator.pushNamedAndRemoveUntil(
                           context, 
-                          AppRouter.customerLogin, 
+                          AppRouter.adminLogin, 
                           (route) => false
                         );
                       }
                     } catch (e) {
-                      developer.log('Error signing out: $e', name: 'profile.page', error: e);
+                      developer.log('Error signing out: $e', name: 'admin.settings', error: e);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('حدث خطأ: $e')),
@@ -429,7 +423,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
     final user = FirebaseAuth.instance.currentUser;
     final bool isLoggedIn = user != null;
 
-    developer.log('Building profile page, user logged in: $isLoggedIn', name: 'profile.page');
+    developer.log('Building admin settings page, admin logged in: $isLoggedIn', name: 'admin.settings');
 
     return Scaffold(
       backgroundColor: const Color(0xFFA79A80),
@@ -437,7 +431,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'الإعدادات',
+          'إعدادات المسؤول',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         centerTitle: true,
@@ -471,7 +465,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                             radius: 30,
                             backgroundColor: Colors.white24,
                             child: Icon(
-                              Icons.person,
+                              Icons.admin_panel_settings,
                               size: 30,
                               color: Colors.white,
                             ),
@@ -484,7 +478,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                                 Text(
                                   _userData != null
                                       ? "${_userData!['firstName']} ${_userData!['lastName']}"
-                                      : user.displayName ?? 'مستخدم',
+                                      : user.displayName ?? 'مسؤول',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -513,11 +507,11 @@ class _TwelfthPageState extends State<TwelfthPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // My Orders Button
+                    // Orders Management Button
                     InkWell(
                       onTap: () {
-                        developer.log('Navigating to orders page', name: 'profile.page');
-                        Navigator.pushNamed(context, AppRouter.userOrders);
+                        developer.log('Navigating to orders management page', name: 'admin.settings');
+                        Navigator.pushNamed(context, '/admin/orders');
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -526,11 +520,39 @@ class _TwelfthPageState extends State<TwelfthPage> {
                         ),
                         child: const ListTile(
                           leading: Icon(
-                            Icons.receipt_long_outlined,
+                            Icons.shopping_bag_outlined,
                             color: Color(0xFFA79A80),
                           ),
                           title: Text(
-                            "طلباتي",
+                            "إدارة الطلبات",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Products Management Button
+                    InkWell(
+                      onTap: () {
+                        developer.log('Navigating to products management page', name: 'admin.settings');
+                        Navigator.pushNamed(context, AppRouter.adminDashboard);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const ListTile(
+                          leading: Icon(
+                            Icons.inventory_2_outlined,
+                            color: Color(0xFFA79A80),
+                          ),
+                          title: Text(
+                            "إدارة المنتجات",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -558,9 +580,9 @@ class _TwelfthPageState extends State<TwelfthPage> {
                     ),
                   ),
                   InkWell(
-                    onTap: _showPrivacyDialog,
+                    onTap: _showAppSettingsDialog,
                     child: const SettingsOption(
-                      title: "الخصوصية",
+                      title: "إعدادات التطبيق",
                       hasTrailingIcon: true,
                     ),
                   ),
@@ -577,7 +599,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                       ? const SignOutButton()
                       : ElevatedButton(
                           onPressed: () {
-                            Navigator.pushNamed(context, AppRouter.customerLogin);
+                            Navigator.pushNamed(context, AppRouter.adminLogin);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -601,7 +623,7 @@ class _TwelfthPageState extends State<TwelfthPage> {
                     onPressed: () {
                       Navigator.pushNamedAndRemoveUntil(
                         context, 
-                        AppRouter.customerHome, 
+                        AppRouter.adminDashboard, 
                         (route) => false
                       );
                     },
@@ -671,7 +693,7 @@ class SignOutButton extends StatelessWidget {
 
   Future<void> _signOut(BuildContext context) async {
     try {
-      developer.log('Signing out user', name: 'profile.page');
+      developer.log('Signing out admin', name: 'admin.settings');
       final authService = Provider.of<AuthService>(context, listen: false);
       await authService.signOut();
 
@@ -688,7 +710,7 @@ class SignOutButton extends StatelessWidget {
         (route) => false
       );
     } catch (e) {
-      developer.log('Error signing out: $e', name: 'profile.page', error: e);
+      developer.log('Error signing out: $e', name: 'admin.settings', error: e);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("حدث خطأ أثناء تسجيل الخروج: $e")),

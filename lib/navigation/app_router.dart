@@ -15,6 +15,7 @@ import 'package:clay_craft_project/fourteenth_page.dart';
 import 'package:clay_craft_project/fav_page.dart';
 import 'package:clay_craft_project/shopping_page.dart';
 import 'package:clay_craft_project/user/user_orders_page.dart';
+import 'package:clay_craft_project/admin/admin_settings_page.dart';
 
 /// AppRouter handles navigation and route management for the Clay Craft app.
 /// It separates admin and customer routes and provides route guards.
@@ -29,6 +30,7 @@ class AppRouter {
   static const String adminLogin = '/admin/login';
   static const String adminSignup = '/admin/signup';
   static const String adminDashboard = '/admin/dashboard';
+  static const String adminSettings = '/admin/settings';
   
   // Customer routes
   static const String customerLogin = '/customer/login';
@@ -63,6 +65,9 @@ class AppRouter {
           builder: (_) => const FifthAdmin(),
           settings: settings,
         );
+      
+      case adminSettings:
+        return MaterialPageRoute(builder: (_) => const AdminSettingsPage());
       
       // Customer routes
       case customerLogin:

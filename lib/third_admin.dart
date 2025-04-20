@@ -3,6 +3,7 @@ import 'package:clay_craft_project/forth_admin.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
 import 'admin/orders_management_page.dart';
+import 'admin/admin_settings_page.dart';
 
 class ThirdAdmin extends StatelessWidget {
   const ThirdAdmin({super.key});
@@ -130,6 +131,36 @@ class ThirdAdmin extends StatelessWidget {
                           ),
                           label: const Text(
                             "إدارة الطلبات",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Settings Button
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminSettingsPage(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.settings,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            "الإعدادات",
                             style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                         ),
