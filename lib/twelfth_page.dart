@@ -1,16 +1,61 @@
-import 'package:clay_craft_project/sixth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:clay_craft_project/navigation/app_router.dart';
+import 'package:provider/provider.dart';
+import 'package:clay_craft_project/services/auth_service.dart';
+import 'dart:developer' as developer;
 
-class TwelfthPage extends StatelessWidget {
+class TwelfthPage extends StatefulWidget {
   const TwelfthPage({super.key});
+
+  @override
+  State<TwelfthPage> createState() => _TwelfthPageState();
+}
+
+class _TwelfthPageState extends State<TwelfthPage> {
+  bool _isLoading = false;
+  Map<String, dynamic>? _userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    developer.log('Initializing profile page', name: 'profile.page');
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final userData = await authService.getCurrentUserData();
+      
+      developer.log('User data loaded: ${userData != null}', name: 'profile.page');
+      
+      if (mounted) {
+        setState(() {
+          _userData = userData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      developer.log('Error loading user data: $e', name: 'profile.page', error: e);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final bool isLoggedIn = user != null;
+
+    developer.log('Building profile page, user logged in: $isLoggedIn', name: 'profile.page');
 
     return Scaffold(
       backgroundColor: const Color(0xFFA79A80),
@@ -18,7 +63,7 @@ class TwelfthPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'Settings',
+          'الإعدادات',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         centerTitle: true,
@@ -29,104 +74,143 @@ class TwelfthPage extends StatelessWidget {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (isLoggedIn) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white24,
-                      child: Icon(
-                        Icons.person,
-                        size: 30,
-                        color: Colors.white,
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  if (isLoggedIn) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            user.displayName ?? 'User',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          const CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.white24,
+                            child: Icon(
+                              Icons.person,
+                              size: 30,
                               color: Colors.white,
                             ),
                           ),
-                          Text(
-                            user.email ?? '',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _userData != null
+                                      ? "${_userData!['firstName']} ${_userData!['lastName']}"
+                                      : user.displayName ?? 'مستخدم',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  user.email ?? '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                ),
+                                if (_userData != null && _userData!['mobile'] != null && _userData!['mobile'].isNotEmpty)
+                                  Text(
+                                    _userData!['mobile'],
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // My Orders Button
-              InkWell(
-                onTap: () {
-                  Navigator.pushNamed(context, AppRouter.userOrders);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const ListTile(
-                    leading: Icon(
-                      Icons.receipt_long_outlined,
-                      color: Color(0xFFA79A80),
-                    ),
-                    title: Text(
-                      "طلباتي",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(height: 16),
+                    // My Orders Button
+                    InkWell(
+                      onTap: () {
+                        developer.log('Navigating to orders page', name: 'profile.page');
+                        Navigator.pushNamed(context, AppRouter.userOrders);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const ListTile(
+                          leading: Icon(
+                            Icons.receipt_long_outlined,
+                            color: Color(0xFFA79A80),
+                          ),
+                          title: Text(
+                            "طلباتي",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        ),
                       ),
                     ),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    const SizedBox(height: 16),
+                  ],
+                  const SettingsOption(
+                      title: "إدارة حسابي", hasTrailingIcon: true),
+                  const SettingsOption(title: "العملة", trailingText: "JOD"),
+                  const SettingsOption(title: "الخصوصية", hasTrailingIcon: true),
+                  const SettingsOption(
+                      title: "تبديل الحساب", hasTrailingIcon: true),
+                  const Spacer(),
+                  isLoggedIn 
+                      ? const SignOutButton()
+                      : ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRouter.customerLogin);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFFA79A80),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "تسجيل الدخول",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                  const SizedBox(height: 16),
+                  IconButton(
+                    icon: const Icon(Icons.home, size: 30, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context, 
+                        AppRouter.customerHome, 
+                        (route) => false
+                      );
+                    },
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 16),
-            ],
-            const SettingsOption(
-                title: "Manage My Account", hasTrailingIcon: true),
-            const SettingsOption(title: "Currency", trailingText: "JOD"),
-            const SettingsOption(title: "Privacy", hasTrailingIcon: true),
-            const SettingsOption(
-                title: "Switch Accounts", hasTrailingIcon: true),
-            const Spacer(),
-            const SignOutButton(),
-            const SizedBox(height: 16),
-            IconButton(
-              icon: const Icon(Icons.home, size: 30, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SixthPage()),
-                );
-              },
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -175,18 +259,31 @@ class SignOutButton extends StatelessWidget {
   const SignOutButton({super.key});
 
   Future<void> _signOut(BuildContext context) async {
-    GoogleSignIn googleSignIn = GoogleSignIn();
-    googleSignIn.disconnect();
-    await FirebaseAuth.instance.signOut();
+    try {
+      developer.log('Signing out user', name: 'profile.page');
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.signOut();
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Signed out successfully")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("تم تسجيل الخروج بنجاح")),
+      );
 
-    // Optional: Go back to login screen or root
-    Navigator.of(context).popUntil((route) => route.isFirst);
+      // Navigate to home page
+      Navigator.pushNamedAndRemoveUntil(
+        context, 
+        AppRouter.home, 
+        (route) => false
+      );
+    } catch (e) {
+      developer.log('Error signing out: $e', name: 'profile.page', error: e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("حدث خطأ أثناء تسجيل الخروج: $e")),
+        );
+      }
+    }
   }
 
   @override
@@ -200,7 +297,7 @@ class SignOutButton extends StatelessWidget {
       child: TextButton(
         onPressed: () => _signOut(context),
         child: const Text(
-          "Sign Out",
+          "تسجيل الخروج",
           style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
         ),
