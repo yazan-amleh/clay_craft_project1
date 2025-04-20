@@ -3,107 +3,316 @@ import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
 import 'fifth_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:clay_craft_project/services/auth_service.dart';
 
 class ThirdPage extends StatefulWidget {
   const ThirdPage({super.key});
 
   @override
-  State<ThirdPage> createState() => _ThirdPageState();
+  State<ThirdPage> createState() => _CustomerLoginState();
 }
 
-class _ThirdPageState extends State<ThirdPage> {
+class _CustomerLoginState extends State<ThirdPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  String _errorMessage = '';
 
-  Future<void> _signIn() async {
-    final emailAddress = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+  Future<void> _signInWithEmail() async {
+    if (_emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
 
-    if (emailAddress.isEmpty || password.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter both email and password')),
+      try {
+        String emailAddress = _emailController.text.trim();
+        String password = _passwordController.text;
+
+        UserCredential userCredential = await _authService.signInWithEmailAndPassword(
+          emailAddress, 
+          password
         );
-      }
-      return;
-    }
 
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: emailAddress, password: password);
+        User? user = userCredential.user;
 
-      User? user = userCredential.user;
+        if (user != null) {
+          // Check if email is verified
+          if (!_authService.isEmailVerified(user)) {
+            // Show dialog with option to resend verification email
+            if (!mounted) return;
+            await _showVerificationDialog(user.email ?? '');
+            await _authService.signOut();
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
 
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
+          // Check if user is customer (not admin)
+          bool isAdmin = await _authService.isUserAdmin(user.uid);
+          if (isAdmin) {
+            _showSnackBar('This account is registered as an admin. Please use the admin login.');
+            await _authService.signOut();
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Email not verified. A verification email has been sent. Please check your inbox.',
-              ),
-            ),
+          // Navigate to customer dashboard
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => FifthPage()),
           );
         }
-
-        await FirebaseAuth.instance.signOut();
-        return;
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = 'An error occurred. Please try again.';
+        
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found with this email.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Wrong password provided.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'The email address is not valid.';
+        } else if (e.code == 'user-disabled') {
+          errorMessage = 'This user account has been disabled.';
+        }
+        
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
       }
-
-      if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => FifthPage()),
-      );
-    } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred';
-
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided for that user.';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(message)));
-      }
+    } else {
+      _showSnackBar('Please enter both email and password');
     }
   }
 
+  // Show dialog for email verification
+  Future<void> _showVerificationDialog(String email) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        bool _isSending = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Email Verification Required'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.mark_email_unread,
+                      size: 50,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(height: 15),
+                    Text(
+                      'Your email ($email) is not verified.',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Please check your inbox and click on the verification link we sent you.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'If you cannot find the email, check your spam folder or request a new verification email.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                _isSending
+                    ? const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        icon: const Icon(Icons.send),
+                        label: const Text('Resend Verification Email'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          setState(() {
+                            _isSending = true;
+                          });
+                          try {
+                            // First sign in again to get the user
+                            UserCredential userCredential = await _authService.signInWithEmailAndPassword(
+                              _emailController.text.trim(), 
+                              _passwordController.text
+                            );
+                            
+                            if (userCredential.user != null) {
+                              await userCredential.user!.sendEmailVerification();
+                              Navigator.of(context).pop();
+                              _showSnackBar('Verification email sent. Please check your inbox.');
+                            }
+                          } catch (e) {
+                            setState(() {
+                              _isSending = false;
+                            });
+                            Navigator.of(context).pop();
+                            _showSnackBar('Error sending verification email: ${e.toString()}');
+                          }
+                        },
+                      ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  // Show dialog for password reset
+  Future<void> _showPasswordResetDialog() async {
+    final TextEditingController _resetEmailController = TextEditingController();
+    _resetEmailController.text = _emailController.text.trim();
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        bool _isSending = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Reset Password'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.lock_reset,
+                      size: 50,
+                      color: Colors.amber,
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      'Enter your email address and we will send you a link to reset your password.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _resetEmailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                _isSending
+                    ? const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        icon: const Icon(Icons.send),
+                        label: const Text('Send Reset Link'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final email = _resetEmailController.text.trim();
+                          if (email.isEmpty) {
+                            _showSnackBar('Please enter your email address');
+                            return;
+                          }
+                          
+                          setState(() {
+                            _isSending = true;
+                          });
+                          
+                          try {
+                            await _authService.resetPassword(email);
+                            Navigator.of(context).pop();
+                            _showSnackBar('Password reset email sent. Please check your inbox.');
+                          } catch (e) {
+                            setState(() {
+                              _isSending = false;
+                            });
+                            Navigator.of(context).pop();
+                            _showSnackBar('Error sending password reset email: ${e.toString()}');
+                          }
+                        },
+                      ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
   Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
+      // Sign in with Google as customer (not admin)
+      await _authService.signInWithGoogle(false);
+      
       if (!mounted) return;
-
-      Navigator.push(
+      
+      // Navigate to customer dashboard
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => FifthPage()),
       );
     } catch (e) {
+      _showSnackBar('Google Sign-In failed: $e');
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Sign-In failed: $e')),
-        );
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -124,74 +333,120 @@ class _ThirdPageState extends State<ThirdPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               width: 300,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'CLAY CRAFT',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 108, 89, 63),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _signIn,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 108, 89, 63),
-                    ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => FourthPage()),
-                      );
-                    },
-                    child: const Text(
-                      'You do not have an account? Sign up',
-                      style: TextStyle(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
                         color: Color.fromARGB(255, 108, 89, 63),
-                        decoration: TextDecoration.underline,
                       ),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'CLAY CRAFT',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 108, 89, 63),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Customer Login',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Color.fromARGB(255, 108, 89, 63),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (_errorMessage.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10.0),
+                            child: Text(
+                              _errorMessage,
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ElevatedButton(
+                          onPressed: _signInWithEmail,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.0,
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: _showPasswordResetDialog,
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 108, 89, 63),
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => FourthPage()),
+                            );
+                          },
+                          child: const Text(
+                            'You do not have an account? Sign up',
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 108, 89, 63),
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          icon: const Icon(
+                            Icons.g_mobiledata,
+                            size: 30,
+                            color: Colors.red,
+                          ),
+                          label: const Text(
+                            'Sign in with Google',
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                          onPressed: _signInWithGoogle,
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.email),
-                        color: const Color.fromARGB(255, 108, 89, 63),
-                        onPressed: _signInWithGoogle,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
         ],

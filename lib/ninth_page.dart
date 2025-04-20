@@ -1,55 +1,96 @@
 import 'package:clay_craft_project/eleventh_page.dart';
 import 'package:clay_craft_project/fav_page.dart';
-import 'package:clay_craft_project/items_page.dart';
+import 'package:clay_craft_project/product_detail_page.dart';
 import 'package:clay_craft_project/shopping_page.dart';
 import 'package:clay_craft_project/sixth_page.dart';
 import 'package:clay_craft_project/twelfth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
+import 'package:clay_craft_project/services/firestore_service.dart';
+import 'package:clay_craft_project/provider/pottery_data_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class NinthPage extends StatefulWidget {
-  const NinthPage({super.key, required List<Item> potteryItems});
+  final List<PotteryItem> potteryItems;
+  const NinthPage({super.key, required this.potteryItems});
 
   @override
   State<NinthPage> createState() => _NinthPageState();
 }
 
 class _NinthPageState extends State<NinthPage> {
-  final List<Map<String, String>> tablewarePotteryItems = [
-    {
-      "name": "Grey Utensil Holder",
-      "price": "5.00 JD",
-      "image": Assets.imagesT1
-    },
-    {"name": "Spice Jars", "price": "9.00 JD", "image": Assets.imagesT2},
-    {"name": "Brown Fruit Bowl", "price": "10.00 JD", "image": Assets.imagesT3},
-    {
-      "name": "Black Butter Dishes",
-      "price": "13.00 JD",
-      "image": Assets.imagesT4
-    },
-    {
-      "name": "Salt And Sugar Holder",
-      "price": "11.00 JD",
-      "image": Assets.imagesT5
-    },
-    {
-      "name": "Beige Utensil Holder",
-      "price": "6.00 JD",
-      "image": Assets.imagesT6
-    },
-    {"name": "Candle Holder", "price": "15.00 JD", "image": Assets.imagesT7},
-    {
-      "name": "White Bread Basket",
-      "price": "8.00 JD",
-      "image": Assets.imagesT8
-    },
-    {
-      "name": "White Serving Dishes",
-      "price": "7.50 JD",
-      "image": Assets.imagesT9
-    },
-  ];
+  final FirestoreService _firestoreService = FirestoreService();
+  List<PotteryItem> _tablewareItems = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTablewareItems();
+  }
+
+  Future<void> _loadTablewareItems() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      // استرجاع البيانات مباشرة أولاً (للعرض السريع)
+      final items = await _firestoreService.getAllPotteryItems();
+      
+      if (mounted) {
+        setState(() {
+          // تصفية العناصر للحصول على فئة Tableware فقط
+          _tablewareItems = items.where((item) => item.category == 'Tableware').toList();
+          _isLoading = false;
+        });
+        
+        debugPrint('تم تحميل ${_tablewareItems.length} منتج من فئة Tableware');
+      }
+      
+      // ثم إعداد المستمع للتحديثات المباشرة
+      _setupFirestoreListener();
+    } catch (e) {
+      debugPrint('خطأ في تحميل منتجات Tableware: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = 'حدث خطأ أثناء تحميل المنتجات: $e';
+        });
+      }
+    }
+  }
+
+  void _setupFirestoreListener() {
+    if (_isListening) return;
+    
+    _isListening = true;
+    _firestoreService.getPotteryItemsByCategory('Tableware').listen((items) {
+      if (mounted) {
+        setState(() {
+          _tablewareItems = items;
+          _isLoading = false;
+          _hasError = false;
+        });
+        debugPrint('تم تحديث قائمة منتجات Tableware من خلال المستمع: ${items.length} منتج');
+      }
+    }, onError: (error) {
+      debugPrint('خطأ في مستمع Tableware: $error');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = 'حدث خطأ أثناء تحميل المنتجات: $error';
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +105,9 @@ class _NinthPageState extends State<NinthPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const TwelfthPage()),
+                MaterialPageRoute(
+                    builder: (context) =>
+                        const TwelfthPage()),
               );
             },
           ),
@@ -77,7 +120,7 @@ class _NinthPageState extends State<NinthPage> {
               context,
               MaterialPageRoute(
                   builder: (context) =>
-                      const EleventhPage()), // Replace with your actual Settings Page widget
+                      const EleventhPage()),
             );
           },
         ),
@@ -88,54 +131,111 @@ class _NinthPageState extends State<NinthPage> {
           const CategoryChips(),
           const HeaderImage(),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GridView.builder(
-                itemCount: tablewarePotteryItems.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemBuilder: (context, index) {
-                  return PotteryItemCard(item: tablewarePotteryItems[index]);
-                },
-              ),
-            ),
+            child: _isLoading
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 108, 89, 63)),
+                        ),
+                        SizedBox(height: 16),
+                        Text('جاري تحميل المنتجات...', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  )
+                : _hasError
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadTablewareItems,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                              ),
+                              child: const Text('إعادة المحاولة'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _tablewareItems.isEmpty
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.inventory, size: 48, color: Colors.grey),
+                                SizedBox(height: 16),
+                                Text(
+                                  'لا توجد منتجات متاحة في هذه الفئة',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadTablewareItems,
+                            color: const Color.fromARGB(255, 108, 89, 63),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: GridView.builder(
+                                itemCount: _tablewareItems.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2, // تغيير إلى 2 لعرض أفضل
+                                  childAspectRatio: 0.75,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final item = _tablewareItems[index];
+                                  return PotteryItemCard(
+                                    firestoreItem: item,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromRGBO(209, 192, 171, 1),
-        onTap: (index) {
-          // Handle navigation based on the index
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ShoppingPage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SixthPage()),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => FavPage()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: ''),
-        ],
+      bottomNavigationBar: BottomAppBar(
+        color: const Color(0xFFD1C0AB),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SixthPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.shopping_cart, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShoppingPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.favorite, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FavPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -146,18 +246,28 @@ class SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
-        hintText: 'Tableware and Kitchenware pottery',
-        hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: const Icon(Icons.search, color: Colors.grey),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: EdgeInsets.zero,
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Icon(Icons.search, color: Colors.grey),
+          ),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -166,24 +276,31 @@ class SearchBar extends StatelessWidget {
 class CategoryChips extends StatelessWidget {
   const CategoryChips({super.key});
 
-  final List<String> categories = const [
-    "Utensil Holders",
-    "Serving Dishes and Trays",
-    "Bread Baskets",
-    "Fruit Bowls",
-    "Small storage"
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      children: categories
-          .map((cat) => Chip(
-                label: Text(cat),
-                backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-              ))
-          .toList(),
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _buildChip('All'),
+          _buildChip('Popular'),
+          _buildChip('New'),
+          _buildChip('Discounted'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String label) {
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
+      child: Chip(
+        label: Text(label),
+        backgroundColor: Colors.white,
+        labelStyle: const TextStyle(color: Colors.black),
+      ),
     );
   }
 }
@@ -194,90 +311,162 @@ class HeaderImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 150,
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Stack(
-        children: [
-          Image.asset(
-            Assets.images2,
-            fit: BoxFit.fitWidth,
-            height: 150,
-            width: 500,
+      margin: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        image: const DecorationImage(
+          image: AssetImage(Assets.imagesT1),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              Colors.black.withOpacity(0.7),
+            ],
           ),
-          const Positioned(
-            left: 10,
-            bottom: 0,
-            child: Text(
-              'Handcrafted\nwith love',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.brown,
-                fontWeight: FontWeight.bold,
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(15),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tableware Collection',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              SizedBox(height: 5),
+              Text(
+                'Elegant and functional tableware for your home',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class PotteryItemCard extends StatelessWidget {
-  final Map<String, dynamic> item;
+  final PotteryItem? firestoreItem;
+  final PotteryItem? staticItem;
 
-  const PotteryItemCard({super.key, required this.item});
+  const PotteryItemCard({
+    super.key,
+    this.firestoreItem,
+    this.staticItem,
+  }) : assert(firestoreItem != null || staticItem != null);
 
   @override
   Widget build(BuildContext context) {
-    bool hasDiscount = item.containsKey('discount');
+    final name = firestoreItem?.name ?? staticItem?.name ?? '';
+    final price = firestoreItem?.price ?? staticItem?.price ?? 0.0;
+    final imageUrl = firestoreItem?.imageUrl ?? staticItem?.imageUrl ?? '';
+    final videoUrl = firestoreItem?.videoUrl ?? '';
+    final documentId = firestoreItem?.documentId;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.all(5),
-      child: Column(
-        children: [
-          Expanded(
-            child: Image.asset(item['image']!, fit: BoxFit.cover),
-          ),
-          Text(
-            item['name']!,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            item['price']!,
-            style: TextStyle(
-              fontSize: 12,
-              color: hasDiscount ? Colors.grey : Colors.black,
-              decoration: hasDiscount
-                  ? TextDecoration.lineThrough
-                  : TextDecoration.none,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(
+              name: name,
+              price: price,
+              imageUrl: imageUrl,
+              videoUrl: videoUrl,
+              documentId: documentId,
             ),
           ),
-          if (hasDiscount)
-            Text(
-              item['discount'],
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
+        );
+      },
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(15),
+                  topRight: Radius.circular(15),
+                ),
+                child: Image.asset(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
               ),
             ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              Icon(
-                Icons.shopping_cart,
-                size: 16,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 108, 89, 63),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (documentId != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 12, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'ID: ${documentId.substring(0, min(6, documentId.length))}...',
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              Icon(Icons.favorite_border, size: 16),
-            ],
-          )
-        ],
+            ),
+          ],
+        ),
       ),
     );
+  }
+  
+  // Helper function to get minimum of two integers
+  int min(int a, int b) {
+    return a < b ? a : b;
   }
 }

@@ -2,12 +2,16 @@ import 'package:clay_craft_project/sixth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:clay_craft_project/navigation/app_router.dart';
 
 class TwelfthPage extends StatelessWidget {
   const TwelfthPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final bool isLoggedIn = user != null;
+
     return Scaffold(
       backgroundColor: const Color(0xFFA79A80),
       appBar: AppBar(
@@ -29,6 +33,79 @@ class TwelfthPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            if (isLoggedIn) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.white24,
+                      child: Icon(
+                        Icons.person,
+                        size: 30,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.displayName ?? 'User',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            user.email ?? '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // My Orders Button
+              InkWell(
+                onTap: () {
+                  Navigator.pushNamed(context, AppRouter.userOrders);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const ListTile(
+                    leading: Icon(
+                      Icons.receipt_long_outlined,
+                      color: Color(0xFFA79A80),
+                    ),
+                    title: Text(
+                      "طلباتي",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             const SettingsOption(
                 title: "Manage My Account", hasTrailingIcon: true),
             const SettingsOption(title: "Currency", trailingText: "JOD"),

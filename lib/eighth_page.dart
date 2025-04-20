@@ -1,16 +1,56 @@
 import 'package:clay_craft_project/eleventh_page.dart';
 import 'package:clay_craft_project/fav_page.dart';
-import 'package:clay_craft_project/fifteenth_page.dart';
-import 'package:clay_craft_project/items_page.dart';
 import 'package:clay_craft_project/shopping_page.dart';
 import 'package:clay_craft_project/sixth_page.dart';
 import 'package:clay_craft_project/twelfth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
+import 'package:clay_craft_project/services/firestore_service.dart';
+import 'package:clay_craft_project/provider/pottery_data_provider.dart';
 
-class EighthPage extends StatelessWidget {
-  final List<Item> potteryItems;
+class EighthPage extends StatefulWidget {
+  final List<PotteryItem> potteryItems;
   const EighthPage({super.key, required this.potteryItems});
+
+  @override
+  State<EighthPage> createState() => _EighthPageState();
+}
+
+class _EighthPageState extends State<EighthPage> {
+  final FirestoreService _firestoreService = FirestoreService();
+  List<PotteryItem> _decorativePotteryItems = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDecorativePotteryItems();
+  }
+
+  Future<void> _loadDecorativePotteryItems() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // استمع إلى تغييرات منتجات فئة Decorative Pottery
+      _firestoreService.getPotteryItemsByCategory('Decorative Pottery').listen((items) {
+        if (mounted) {
+          setState(() {
+            _decorativePotteryItems = items;
+            _isLoading = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Error loading decorative pottery items: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +67,7 @@ class EighthPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) =>
-                        const TwelfthPage()), // Replace with your actual Person Page widget
+                        const TwelfthPage()),
               );
             },
           ),
@@ -40,7 +80,7 @@ class EighthPage extends StatelessWidget {
               context,
               MaterialPageRoute(
                   builder: (context) =>
-                      const EleventhPage()), // Replace with your actual Settings Page widget
+                      const EleventhPage()),
             );
           },
         ),
@@ -51,54 +91,65 @@ class EighthPage extends StatelessWidget {
           const CategoryChips(),
           const HeaderImage(),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GridView.builder(
-                itemCount: decorativePotteryItems.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemBuilder: (context, index) {
-                  return PotteryItemCard(item: decorativePotteryItems[index]);
-                },
-              ),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _decorativePotteryItems.isEmpty
+                    ? const Center(child: Text('No decorative pottery items found'))
+                    : Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: GridView.builder(
+                          itemCount: _decorativePotteryItems.length,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                          itemBuilder: (context, index) {
+                            final item = _decorativePotteryItems[index];
+                            return PotteryItemCard(
+                              firestoreItem: item,
+                            );
+                          },
+                        ),
+                      ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromRGBO(209, 192, 171, 1),
-        onTap: (index) {
-          // Handle navigation based on the index
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ShoppingPage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SixthPage()),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => FavPage()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: ''),
-        ],
+      bottomNavigationBar: BottomAppBar(
+        color: const Color(0xFFD1C0AB),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SixthPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.shopping_cart, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShoppingPage()),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.favorite, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FavPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -181,47 +232,88 @@ class HeaderImage extends StatelessWidget {
 }
 
 class PotteryItemCard extends StatelessWidget {
-  final Map<String, String> item;
+  final PotteryItem? firestoreItem;
+  final Map<String, String>? staticItem;
 
-  const PotteryItemCard({super.key, required this.item});
+  const PotteryItemCard({super.key, this.firestoreItem, this.staticItem});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.all(5),
-      child: Column(
-        children: [
-          Expanded(
-            child: Image.asset(item['image']!, fit: BoxFit.cover),
-          ),
-          Text(
-            item['name']!,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            item['price']!,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black,
+    if (firestoreItem != null) {
+      // إذا كان المنتج من Firestore
+      return Container(
+        decoration: BoxDecoration(
+          color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: firestoreItem!.imageUrl.isNotEmpty
+                  ? Image.network(
+                      firestoreItem!.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.image_not_supported);
+                      },
+                    )
+                  : const Icon(Icons.image_not_supported),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              Icon(
-                Icons.shopping_cart,
-                size: 16,
+            Text(
+              firestoreItem!.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              '${firestoreItem!.price} JD',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black,
               ),
-              Icon(Icons.favorite_border, size: 16),
-            ],
-          )
-        ],
-      ),
-    );
+            ),
+            const SizedBox(height: 5),
+          ],
+        ),
+      );
+    } else if (staticItem != null) {
+      // إذا كان المنتج من القائمة الثابتة
+      return Container(
+        decoration: BoxDecoration(
+          color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Image.asset(staticItem!['image']!, fit: BoxFit.cover),
+            ),
+            Text(
+              staticItem!['name']!,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              staticItem!['price']!,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 5),
+          ],
+        ),
+      );
+    } else {
+      // حالة الافتراضية إذا لم يتم توفير أي منتج
+      return Container(
+        decoration: BoxDecoration(
+          color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: Text('No item data'),
+        ),
+      );
+    }
   }
 }

@@ -1,7 +1,6 @@
 import 'package:clay_craft_project/app_images.dart';
-import 'package:clay_craft_project/first_admin.dart';
 import 'package:flutter/material.dart';
-import 'third_page.dart';
+import 'package:clay_craft_project/navigation/app_router.dart';
 
 class SecondPage extends StatelessWidget {
   const SecondPage({super.key});
@@ -62,12 +61,7 @@ class SecondPage extends StatelessWidget {
                             ),
                           ),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const FirstAdmin()),
-                            );
-                            // Admin button pressed
+                            Navigator.pushNamed(context, AppRouter.adminLogin);
                           },
                           child: Text(
                             "Admin",
@@ -88,11 +82,7 @@ class SecondPage extends StatelessWidget {
                             ),
                           ),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const ThirdPage()),
-                            );
+                            Navigator.pushNamed(context, AppRouter.customerLogin);
                           },
                           child: Text(
                             "Customer",

@@ -1,21 +1,50 @@
-import 'package:clay_craft_project/items_page.dart';
+import 'package:clay_craft_project/product_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
-import 'item_card.dart';
+import 'package:clay_craft_project/services/firestore_service.dart';
+import 'package:clay_craft_project/provider/pottery_data_provider.dart';
 import 'package:clay_craft_project/twelfth_page.dart';
 import 'package:clay_craft_project/shopping_page.dart';
 import 'package:clay_craft_project/sixth_page.dart';
 import 'package:clay_craft_project/fav_page.dart';
 import 'eleventh_page.dart';
 
-class SeventhPage extends StatelessWidget {
-  final List<Item> potteryItems;
+class SeventhPage extends StatefulWidget {
+  final List<PotteryItem> potteryItems;
 
   const SeventhPage({super.key, required this.potteryItems});
 
   @override
+  State<SeventhPage> createState() => _SeventhPageState();
+}
+
+class _SeventhPageState extends State<SeventhPage> {
+  final FirestoreService _firestoreService = FirestoreService();
+  List<PotteryItem> _functionalItems = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFirestoreItems();
+  }
+
+  Future<void> _loadFirestoreItems() async {
+    // Escuchar los elementos de Firestore de la categoría "Functional"
+    _firestoreService.getPotteryItemsByCategory('Functional').listen((items) {
+      if (mounted) {
+        setState(() {
+          _functionalItems = items;
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final functionalPotteryItems = potteryItems;
+    // Usar los elementos de Firestore si están disponibles, de lo contrario usar los elementos proporcionados
+    final displayItems = _functionalItems.isNotEmpty ? _functionalItems : widget.potteryItems;
 
     return Scaffold(
       backgroundColor: const Color(0xFFD1C0AB),
@@ -44,23 +73,26 @@ class SeventhPage extends StatelessWidget {
       body: Column(
         children: [
           const HeaderImage(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GridView.builder(
-                itemCount: functionalPotteryItems.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: GridView.builder(
+                  itemCount: displayItems.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) {
+                    return PotteryItemCard(item: displayItems[index]);
+                  },
                 ),
-                itemBuilder: (context, index) {
-                  return ItemCard(item: functionalPotteryItems[index]);
-                },
               ),
             ),
-          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -70,19 +102,19 @@ class SeventhPage extends StatelessWidget {
             case 0:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ShoppingPage()),
+                MaterialPageRoute(builder: (context) => const ShoppingPage()),
               );
               break;
             case 1:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SixthPage()),
+                MaterialPageRoute(builder: (context) => const SixthPage()),
               );
               break;
             case 2:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => FavPage()),
+                MaterialPageRoute(builder: (context) => const FavPage()),
               );
               break;
           }
@@ -146,6 +178,82 @@ class HeaderImage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class PotteryItemCard extends StatelessWidget {
+  final PotteryItem item;
+
+  const PotteryItemCard({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(
+              name: item.name,
+              price: item.price,
+              imageUrl: item.imageUrl,
+              videoUrl: item.videoUrl,
+              documentId: item.documentId,
+            ),
+          ),
+        );
+      },
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+                child: Image.asset(
+                  item.imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${item.price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 108, 89, 63),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

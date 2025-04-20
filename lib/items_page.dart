@@ -3,12 +3,14 @@ class Item {
   final double price;
   final String imageUrl;
   final double? discount;
+  int quantity;
 
   Item({
     required this.name,
     required this.price,
     required this.imageUrl,
     this.discount,
+    this.quantity = 1,
   });
 
   /// Factory constructor to create an Item from a Map (e.g., from JSON or local data).
@@ -19,6 +21,7 @@ class Item {
       imageUrl: map['image'],
       discount:
           map.containsKey('discount') ? _parsePrice(map['discount']) : null,
+      quantity: map['quantity'] ?? 1,
     );
   }
 
@@ -36,6 +39,7 @@ class Item {
       'price': '${price.toStringAsFixed(2)} JD',
       'image': imageUrl,
       if (discount != null) 'discount': '${discount!.toStringAsFixed(2)} JD',
+      'quantity': quantity,
     };
   }
 }

@@ -1,81 +1,81 @@
 import 'package:clay_craft_project/eighth_page.dart';
 import 'package:clay_craft_project/eleventh_page.dart';
 import 'package:clay_craft_project/fav_page.dart';
-import 'package:clay_craft_project/fifth_page.dart';
 import 'package:clay_craft_project/ninth_page.dart';
 import 'package:clay_craft_project/seventh_page.dart';
 import 'package:clay_craft_project/shopping_page.dart';
 import 'package:clay_craft_project/tenth_page.dart';
 import 'package:clay_craft_project/twelfth_page.dart';
+import 'package:clay_craft_project/product_detail_page.dart';
 import 'package:flutter/material.dart';
-import 'package:clay_craft_project/app_images.dart';
-import 'items_page.dart';
+import 'package:clay_craft_project/provider/pottery_data_provider.dart';
 
-class SixthPage extends StatelessWidget {
+class SixthPage extends StatefulWidget {
   const SixthPage({super.key});
-  static final List<Item> functionalPotteryItems = [
-    Item(name: "White Plates", price: 10.00, imageUrl: Assets.imagesF1),
-    Item(name: "Brown Plates", price: 8.50, imageUrl: Assets.imagesF2),
-    Item(name: "Teapots Plates", price: 15.00, imageUrl: Assets.imagesF3),
-    Item(name: "Blue Teapots", price: 11.00, imageUrl: Assets.imagesF4),
-    Item(
-        name: "Ice Tray",
-        price: 20.00,
-        imageUrl: Assets.imagesF6,
-        discount: 12.00),
-    Item(name: "White Vase", price: 17.50, imageUrl: Assets.imagesF7),
-    Item(name: "Pattern Plates", price: 6.00, imageUrl: Assets.imagesF8),
-    Item(name: "Beige Mug", price: 4.50, imageUrl: Assets.imagesF9),
-  ];
-  static final List<Item> decorativePotteryItems = [
-    Item(name: "Candle Holder", price: 11.00, imageUrl: Assets.imagesD1),
-    Item(name: "White Wall Hanging", price: 15.00, imageUrl: Assets.imagesD2),
-    Item(name: "White Figurine", price: 17.00, imageUrl: Assets.imagesD3),
-    Item(name: "White Figurine", price: 14.50, imageUrl: Assets.imagesD4),
-    Item(name: "Monstera Drop Dish", price: 10.00, imageUrl: Assets.imagesD5),
-    Item(name: "Apart White Pendant", price: 8.00, imageUrl: Assets.imagesD6),
-    Item(name: "Dark Brown Figurine", price: 10.00, imageUrl: Assets.imagesD7),
-    Item(name: "Mint Wall Hanging", price: 13.00, imageUrl: Assets.imagesD8),
-    Item(name: "White Candle Holder", price: 10.00, imageUrl: Assets.imagesD9),
-  ];
-  static final List<Item> tablewarePotteryItems = [
-    Item(name: "Grey Utensil Holder", price: 5.00, imageUrl: Assets.imagesT1),
-    Item(name: "Spice Jars", price: 9.00, imageUrl: Assets.imagesT2),
-    Item(name: "Brown Fruit Bowl", price: 10.00, imageUrl: Assets.imagesT3),
-    Item(name: "Black Butter Dishes", price: 13.00, imageUrl: Assets.imagesT4),
-    Item(
-        name: "Salt And Sugar Holder", price: 11.00, imageUrl: Assets.imagesT5),
-    Item(name: "Beige Utensil Holder", price: 6.00, imageUrl: Assets.imagesT6),
-    Item(name: "Candle Holder", price: 15.00, imageUrl: Assets.imagesT7),
-    Item(name: "White Bread Basket", price: 8.00, imageUrl: Assets.imagesT8),
-    Item(name: "White Serving Dishes", price: 7.50, imageUrl: Assets.imagesT9),
-  ];
 
-  static final List<Item> storagePotteryItems = [
-    Item(name: "Hanging Curio Shelf", price: 15.00, imageUrl: Assets.imagesO1),
-    Item(name: "Brown Canisters", price: 12.00, imageUrl: Assets.imagesO2),
-    Item(
-        name: "White And Beige Canisters",
-        price: 10.00,
-        imageUrl: Assets.imagesO3),
-    Item(name: "White Jewelry Holder", price: 8.00, imageUrl: Assets.imagesO4),
-    Item(name: "White Jewelry Holder", price: 7.00, imageUrl: Assets.imagesO5),
-    Item(name: "Office Supplies", price: 12.00, imageUrl: Assets.imagesO6),
-    Item(name: "Brown Pen Holder", price: 6.00, imageUrl: Assets.imagesO7),
-    Item(name: "Beige Pen Holder", price: 9.00, imageUrl: Assets.imagesO8),
-    Item(name: "Pen Holder", price: 8.00, imageUrl: Assets.imagesO9),
-  ];
+  @override
+  State<SixthPage> createState() => _SixthPageState();
+}
+
+class _SixthPageState extends State<SixthPage> {
+  final PotteryDataProvider _dataProvider = PotteryDataProvider();
+  
+  bool _isLoading = true;
+  List<PotteryItem> functionalPotteryItems = [];
+  List<PotteryItem> decorativePotteryItems = [];
+  List<PotteryItem> tablewarePotteryItems = [];
+  List<PotteryItem> organizationalPotteryItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // استخدام الأسلوب المباشر للحصول على المنتجات من مزود البيانات
+      await Future.delayed(const Duration(milliseconds: 500)); // تأخير قصير للتحميل
+      
+      setState(() {
+        functionalPotteryItems = _dataProvider.getItemsByCategory('Functional Pottery');
+        decorativePotteryItems = _dataProvider.getItemsByCategory('Decorative Pottery');
+        tablewarePotteryItems = _dataProvider.getItemsByCategory('Tableware Pottery');
+        organizationalPotteryItems = _dataProvider.getItemsByCategory('Organizational Pottery');
+        _isLoading = false;
+      });
+      
+      print('تم تحميل المنتجات: ${functionalPotteryItems.length} وظيفية, ${decorativePotteryItems.length} زخرفية, ${tablewarePotteryItems.length} أدوات مائدة, ${organizationalPotteryItems.length} تنظيمية');
+    } catch (e) {
+      print('خطأ في تحميل المنتجات: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(209, 192, 171, 1),
+      backgroundColor: const Color.fromRGBO(209, 192, 171, 1),
       body: SafeArea(
         child: Column(
           children: [
             _buildTopBar(context),
             _buildSearchBar(),
-            Expanded(child: _buildPotteryCategories(context)),
+            _isLoading 
+                ? const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  )
+                : Expanded(child: _buildPotteryCategories(context)),
             _buildBottomNavBar(context),
           ],
         ),
@@ -85,29 +85,31 @@ class SixthPage extends StatelessWidget {
 
   Widget _buildTopBar(BuildContext context) {
     return Container(
-      color: Color(0xFFD6CFC4),
+      color: const Color(0xFFD6CFC4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EleventhPage()),
+                MaterialPageRoute(builder: (context) => const EleventhPage()),
               );
             },
           ),
-          Text("Menu", style: TextStyle(color: Colors.white, fontSize: 18)),
+          const Text(
+            "Clay Craft",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           IconButton(
-            icon: Icon(Icons.person, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => TwelfthPage()),
-              );
-            },
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadItems,
           ),
         ],
       ),
@@ -116,100 +118,79 @@ class SixthPage extends StatelessWidget {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      padding: const EdgeInsets.all(16.0),
       child: TextField(
         decoration: InputDecoration(
-          hintText: "Find a pottery design",
-          hintStyle: TextStyle(color: Colors.white70),
+          hintText: "Search...",
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
           filled: true,
-          fillColor: Colors.white24,
+          fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(30),
             borderSide: BorderSide.none,
           ),
-          prefixIcon: Icon(Icons.search, color: Colors.white),
         ),
-        style: TextStyle(color: const Color.fromARGB(255, 108, 89, 63)),
       ),
     );
   }
 
   Widget _buildPotteryCategories(BuildContext context) {
-    final List<Map<String, String>> categories = [
-      {"title": "Functional Pottery", "image": Assets.imagesF},
-      {"title": "Decorative Pottery", "image": Assets.imagesD},
-      {"title": "Tableware and Kitchenware Pottery", "image": Assets.imagesT},
-      {"title": "Storage and Organization Pottery", "image": Assets.imagesOr},
-    ];
-
-    return ListView.builder(
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          child: _buildCategoryTile(
-              category['title']!, category['image']!, context),
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryTile(String title, String image, BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (title == "Functional Pottery") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  SeventhPage(potteryItems: functionalPotteryItems),
-            ),
-          );
-        } else if (title == "Decorative Pottery") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  EighthPage(potteryItems: decorativePotteryItems),
-            ),
-          );
-        } else if (title == "Tableware and Kitchenware Pottery") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  NinthPage(potteryItems: tablewarePotteryItems),
-            ),
-          );
-        } else if (title == "Storage and Organization Pottery") {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const TenthPage()),
-          );
-        }
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              image,
-              fit: BoxFit.cover,
-              height: 140,
-              width: double.infinity,
+            _buildCategorySection(
+              context,
+              "Functional Pottery",
+              functionalPotteryItems,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SeventhPage(
+                    potteryItems: functionalPotteryItems,
+                  ),
+                ),
+              ),
             ),
-            Container(
-              height: 140,
-              color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
-              alignment: Alignment.center,
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color.fromARGB(255, 108, 89, 63),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 20),
+            _buildCategorySection(
+              context,
+              "Decorative Pottery",
+              decorativePotteryItems,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EighthPage(
+                    potteryItems: decorativePotteryItems,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildCategorySection(
+              context,
+              "Tableware Pottery",
+              tablewarePotteryItems,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NinthPage(
+                    potteryItems: tablewarePotteryItems,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildCategorySection(
+              context,
+              "Organizational Pottery",
+              organizationalPotteryItems,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TenthPage(),
                 ),
               ),
             ),
@@ -219,39 +200,171 @@ class SixthPage extends StatelessWidget {
     );
   }
 
+  Widget _buildCategorySection(
+    BuildContext context,
+    String title,
+    List<PotteryItem> items,
+    VoidCallback onViewAll,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            TextButton(
+              onPressed: onViewAll,
+              child: const Text(
+                "View All",
+                style: TextStyle(
+                  color: Colors.white,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 180,
+          child: items.isEmpty
+              ? const Center(
+                  child: Text(
+                    "لا توجد منتجات في هذه الفئة",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                )
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: items.length > 5 ? 5 : items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductDetailPage(
+                              name: item.name,
+                              price: item.price,
+                              imageUrl: item.imageUrl,
+                              videoUrl: item.videoUrl,
+                              documentId: item.documentId,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 140,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
+                              ),
+                              child: Image.asset(
+                                item.imageUrl,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "${item.price.toStringAsFixed(2)} JD",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
-      color: Color(0xFFD6CFC4),
+      color: const Color(0xFFD6CFC4),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ShoppingPage()),
-              );
+          IconButton(
+            icon: const Icon(Icons.home, color: Colors.white),
+            onPressed: () {
+              // Already on home page
             },
-            child: Icon(Icons.shopping_cart, color: Colors.white),
           ),
-          GestureDetector(
-            onTap: () {
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: Colors.white),
+            onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => FifthPage()),
+                MaterialPageRoute(builder: (context) => const FavPage()),
               );
             },
-            child: Icon(Icons.home, color: Colors.white),
           ),
-          GestureDetector(
-            onTap: () {
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+            onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => FavPage()),
+                MaterialPageRoute(builder: (context) => const ShoppingPage()),
               );
             },
-            child: Icon(Icons.favorite, color: Colors.white),
+          ),
+          IconButton(
+            icon: const Icon(Icons.receipt_long_outlined, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/customer/orders');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TwelfthPage()),
+              );
+            },
           ),
         ],
       ),

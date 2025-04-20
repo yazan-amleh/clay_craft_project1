@@ -2,6 +2,7 @@ import 'package:clay_craft_project/fifth_admin.dart';
 import 'package:clay_craft_project/forth_admin.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_craft_project/app_images.dart';
+import 'admin/orders_management_page.dart';
 
 class ThirdAdmin extends StatelessWidget {
   const ThirdAdmin({super.key});
@@ -45,42 +46,71 @@ class ThirdAdmin extends StatelessWidget {
                       color: Color.fromARGB((0.7 * 255).toInt(), 255, 255, 255),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Column(
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 108, 89, 63),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromARGB(255, 108, 89, 63),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => FifthAdmin()),
+                                );
+                                // Admin button pressed
+                              },
+                              child: Text(
+                                "Create  Course",
+                                style: TextStyle(color: Colors.white, fontSize: 15),
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                            SizedBox(width: screenWidth * 0.05),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromARGB(255, 108, 89, 63),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ForthAdmin()),
+                                );
+                              },
+                              child: Text(
+                                "Make pottery",
+                                style: TextStyle(color: Colors.white, fontSize: 15),
+                              ),
                             ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => FifthAdmin()),
-                            );
-                            // Admin button pressed
-                          },
-                          child: Text(
-                            "Create  Course",
-                            style: TextStyle(color: Colors.white, fontSize: 15),
-                          ),
+                          ],
                         ),
-                        SizedBox(width: screenWidth * 0.05),
-                        ElevatedButton(
+                        const SizedBox(height: 20),
+                        // Order Management Button
+                        ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 108, 89, 63),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 8,
+                            backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 12,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
@@ -90,12 +120,17 @@ class ThirdAdmin extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => ForthAdmin()),
+                                builder: (context) => const OrdersManagementPage(),
+                              ),
                             );
                           },
-                          child: Text(
-                            "Make pottery",
-                            style: TextStyle(color: Colors.white, fontSize: 15),
+                          icon: const Icon(
+                            Icons.shopping_bag,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            "إدارة الطلبات",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                         ),
                       ],

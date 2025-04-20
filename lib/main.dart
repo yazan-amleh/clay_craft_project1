@@ -1,13 +1,14 @@
-import 'package:clay_craft_project/fav_page.dart';
-import 'package:clay_craft_project/shopping_page.dart';
 import 'package:flutter/material.dart';
-import 'first_page.dart';
 import 'package:provider/provider.dart';
 import 'provider/app_state.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logging/logging.dart';
 import 'firebase_options.dart';
+import 'package:clay_craft_project/navigation/app_router.dart';
+import 'package:clay_craft_project/provider/pottery_data_provider.dart';
+import 'package:clay_craft_project/services/firestore_service.dart';
+import 'package:clay_craft_project/services/auth_service.dart';
 
 final Logger _logger = Logger('FirebaseAuth');
 
@@ -32,9 +33,14 @@ void main() async {
   });
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AppState(),
-      child: MyApp(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AppState()),
+        Provider<FirestoreService>(create: (context) => FirestoreService()),
+        Provider<AuthService>(create: (context) => AuthService()),
+        ChangeNotifierProvider(create: (context) => PotteryDataProvider()),
+      ],
+      child: const MyApp(),
     ),
   );
 }
@@ -46,11 +52,26 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const FirstPage(),
-      routes: {
-        '/favorites': (ctx) => FavPage(),
-        '/shopping': (ctx) => ShoppingPage(),
-      },
+      title: 'Clay Craft',
+      theme: ThemeData(
+        primaryColor: const Color.fromARGB(255, 108, 89, 63),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 108, 89, 63),
+          primary: const Color.fromARGB(255, 108, 89, 63),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 108, 89, 63),
+            foregroundColor: Colors.white,
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color.fromARGB(255, 108, 89, 63),
+          foregroundColor: Colors.white,
+        ),
+      ),
+      initialRoute: AppRouter.home,
+      onGenerateRoute: AppRouter.generateRoute,
     );
   }
 }
