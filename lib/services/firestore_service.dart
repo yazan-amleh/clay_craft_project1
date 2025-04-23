@@ -18,6 +18,7 @@ class FirestoreService {
         'imageUrl': item.imageUrl,
         'videoUrl': item.videoUrl,
         'category': item.category,
+        'externalLink': item.externalLink,
         'timestamp': FieldValue.serverTimestamp(),
       });
       
@@ -46,6 +47,7 @@ class FirestoreService {
           imageUrl: data['imageUrl'] ?? '',
           videoUrl: data['videoUrl'] ?? '',
           category: data['category'] ?? '',
+          externalLink: data['externalLink'] ?? '',
           documentId: doc.id,
         );
       }).toList();
@@ -71,6 +73,7 @@ class FirestoreService {
           imageUrl: data['imageUrl'] ?? '',
           videoUrl: data['videoUrl'] ?? '',
           category: data['category'] ?? '',
+          externalLink: data['externalLink'] ?? '',
           documentId: doc.id,
         );
       }).toList();
@@ -92,6 +95,7 @@ class FirestoreService {
         'imageUrl': item.imageUrl,
         'videoUrl': item.videoUrl,
         'category': item.category,
+        'externalLink': item.externalLink,
         'updatedAt': FieldValue.serverTimestamp(),
       });
       
@@ -131,6 +135,7 @@ class FirestoreService {
           imageUrl: data['imageUrl'] ?? '',
           videoUrl: data['videoUrl'] ?? '',
           category: data['category'] ?? '',
+          externalLink: data['externalLink'] ?? '',
           documentId: doc.id,
         );
       }).toList();
@@ -155,6 +160,7 @@ class FirestoreService {
           imageUrl: data['imageUrl'] ?? '',
           videoUrl: data['videoUrl'] ?? '',
           category: data['category'] ?? '',
+          externalLink: data['externalLink'] ?? '',
           documentId: docSnapshot.id,
         );
       } else {

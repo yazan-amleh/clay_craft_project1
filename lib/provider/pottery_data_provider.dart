@@ -8,6 +8,7 @@ class PotteryItem {
   final String videoUrl;
   final String category;
   final String? documentId;
+  final String? externalLink;
 
   PotteryItem({
     required this.name,
@@ -16,6 +17,7 @@ class PotteryItem {
     required this.videoUrl,
     required this.category,
     this.documentId,
+    this.externalLink,
   });
 }
 

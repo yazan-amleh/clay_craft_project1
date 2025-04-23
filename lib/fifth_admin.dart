@@ -6,6 +6,8 @@ import 'package:clay_craft_project/navigation/app_router.dart';
 import 'package:clay_craft_project/services/auth_service.dart';
 import 'package:clay_craft_project/provider/pottery_data_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:clay_craft_project/admin/edit_pottery_screen.dart';
 
 class FifthAdmin extends StatefulWidget {
   const FifthAdmin({super.key});
@@ -82,11 +84,6 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
     'Storage',
   ];
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
-  final TextEditingController videoUrlController = TextEditingController();
-  String selectedCategory = 'Functional';
-  String selectedImage = Assets.imagesO1;
   final FirestoreService _firestoreService = FirestoreService();
   bool isLoading = false;
   bool isListening = false;
@@ -148,41 +145,46 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
   }
 
   void _showAddPotteryDialog() {
-    nameController.clear();
-    priceController.clear();
-    videoUrlController.clear();
-    selectedCategory = categories[0];
-    selectedImage = availableImages[0];
+    // استخدام نسخ جديدة من وحدات التحكم لتجنب مشاكل الحالة
+    final TextEditingController _addNameController = TextEditingController();
+    final TextEditingController _addPriceController = TextEditingController();
+    final TextEditingController _addVideoUrlController = TextEditingController();
+    final TextEditingController _addExternalLinkController = TextEditingController();
+    
+    // استخدام متغيرات محلية لتخزين الحالة داخل مربع الحوار
+    String _addSelectedCategory = categories[0];
+    String _addSelectedImage = availableImages[0];
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add New Pottery Item'),
-          content: SizedBox(
-            width: 300,
-            height: 400,
-            child: SingleChildScrollView(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Add Pottery Item'),
+            content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
-                    controller: nameController,
+                    controller: _addNameController,
                     decoration: const InputDecoration(labelText: 'Name'),
                   ),
                   TextField(
-                    controller: priceController,
+                    controller: _addPriceController,
                     decoration: const InputDecoration(labelText: 'Price'),
                     keyboardType: TextInputType.number,
                   ),
                   TextField(
-                    controller: videoUrlController,
+                    controller: _addVideoUrlController,
                     decoration: const InputDecoration(labelText: 'Video URL'),
+                  ),
+                  TextField(
+                    controller: _addExternalLinkController,
+                    decoration: const InputDecoration(labelText: 'External Link'),
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: selectedCategory,
+                    value: _addSelectedCategory,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: categories.map((category) {
                       return DropdownMenuItem(
@@ -192,7 +194,7 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
                     }).toList(),
                     onChanged: (value) {
                       setDialogState(() {
-                        selectedCategory = value!;
+                        _addSelectedCategory = value!;
                       });
                     },
                   ),
@@ -200,28 +202,21 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
                   const Text('Select Image:'),
                   SizedBox(
                     height: 100,
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const ClampingScrollPhysics(),
+                    child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 1,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                      ),
                       itemCount: availableImages.length,
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () {
                             setDialogState(() {
-                              selectedImage = availableImages[index];
+                              _addSelectedImage = availableImages[index];
                             });
                           },
                           child: Container(
                             margin: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: selectedImage == availableImages[index]
+                                color: _addSelectedImage == availableImages[index]
                                     ? Colors.blue
                                     : Colors.grey,
                                 width: 2,
@@ -241,219 +236,97 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty ||
-                    priceController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please fill in all required fields')),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  // تنظيف وحدات التحكم
+                  _addNameController.dispose();
+                  _addPriceController.dispose();
+                  _addVideoUrlController.dispose();
+                  _addExternalLinkController.dispose();
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_addNameController.text.isEmpty ||
+                      _addPriceController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Please fill in all required fields')),
+                    );
+                    return;
+                  }
+
+                  final newItem = PotteryItem(
+                    name: _addNameController.text,
+                    price: double.tryParse(_addPriceController.text) ?? 0.0,
+                    imageUrl: _addSelectedImage,
+                    videoUrl: _addVideoUrlController.text,
+                    category: _addSelectedCategory,
+                    externalLink: _addExternalLinkController.text.isNotEmpty ? _addExternalLinkController.text : null,
                   );
-                  return;
-                }
 
-                final newItem = PotteryItem(
-                  name: nameController.text,
-                  price: double.tryParse(priceController.text) ?? 0.0,
-                  imageUrl: selectedImage,
-                  videoUrl: videoUrlController.text,
-                  category: selectedCategory,
-                );
-
-                setState(() {
-                  isLoading = true;
-                });
-
-                try {
-                  final docRef = await _firestoreService.addPotteryItem(newItem);
-                  if (!mounted) return;
-                  
                   setState(() {
-                    isLoading = false;
+                    isLoading = true;
                   });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('تمت إضافة المنتج بنجاح بمعرف: ${docRef.id}')),
-                  );
-                  
-                  // لا حاجة لاستدعاء _loadPotteryItems() لأن المستمع سيقوم بتحديث القائمة تلقائيًا
-                } catch (e) {
-                  debugPrint('خطأ في إضافة المنتج: $e');
-                  if (!mounted) return;
-                  
-                  setState(() {
-                    isLoading = false;
-                  });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطأ في إضافة المنتج: $e')),
-                  );
-                }
 
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+                  try {
+                    await _firestoreService.addPotteryItem(newItem);
+                    if (!mounted) return;
+                    
+                    setState(() {
+                      isLoading = false;
+                    });
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('تمت إضافة المنتج بنجاح')),
+                    );
+                    
+                    // لا حاجة لاستدعاء _loadPotteryItems() لأن المستمع سيقوم بتحديث القائمة تلقائيًا
+                  } catch (e) {
+                    debugPrint('خطأ في إضافة المنتج: $e');
+                    if (!mounted) return;
+                    
+                    setState(() {
+                      isLoading = false;
+                    });
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('خطأ في إضافة المنتج: $e')),
+                    );
+                  }
+
+                  Navigator.pop(dialogContext);
+                  // تنظيف وحدات التحكم
+                  _addNameController.dispose();
+                  _addPriceController.dispose();
+                  _addVideoUrlController.dispose();
+                  _addExternalLinkController.dispose();
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
 
   void _showEditPotteryDialog(PotteryItem item, String documentId) {
-    nameController.text = item.name;
-    priceController.text = item.price.toString();
-    videoUrlController.text = item.videoUrl;
-    selectedCategory = item.category;
-    selectedImage = item.imageUrl;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Pottery Item'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: priceController,
-                decoration: const InputDecoration(labelText: 'Price'),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: videoUrlController,
-                decoration: const InputDecoration(labelText: 'Video URL'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCategory = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              const Text('Select Image:'),
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: availableImages.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedImage = availableImages[index];
-                          Navigator.pop(context);
-                          _showEditPotteryDialog(item, documentId);
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: selectedImage == availableImages[index]
-                                ? Colors.blue
-                                : Colors.grey,
-                            width: 2,
-                          ),
-                        ),
-                        child: Image.asset(
-                          availableImages[index],
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditPotteryScreen(
+          item: item,
+          documentId: documentId,
+          availableImages: availableImages,
+          categories: categories,
+          onUpdate: () {
+            _loadPotteryItems();
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  priceController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Please fill in all required fields')),
-                );
-                return;
-              }
-
-              final updatedItem = PotteryItem(
-                name: nameController.text,
-                price: double.tryParse(priceController.text) ?? 0.0,
-                imageUrl: selectedImage,
-                videoUrl: videoUrlController.text,
-                category: selectedCategory,
-                documentId: documentId,
-              );
-
-              setState(() {
-                isLoading = true;
-              });
-
-              try {
-                await _firestoreService.updatePotteryItem(documentId, updatedItem);
-                if (!mounted) return;
-                
-                setState(() {
-                  isLoading = false;
-                });
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم تحديث المنتج بنجاح')),
-                );
-                
-                // لا حاجة لاستدعاء _loadPotteryItems() لأن المستمع سيقوم بتحديث القائمة تلقائيًا
-              } catch (e) {
-                debugPrint('خطأ في تحديث المنتج: $e');
-                if (!mounted) return;
-                
-                setState(() {
-                  isLoading = false;
-                });
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('خطأ في تحديث المنتج: $e')),
-                );
-              }
-
-              Navigator.pop(context);
-            },
-            child: const Text('Update'),
-          ),
-        ],
       ),
     );
   }
@@ -522,65 +395,111 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
                       final item = potteryItems[index];
                       return Card(
                         margin: const EdgeInsets.all(8),
-                        child: ListTile(
-                          leading: Image.asset(
-                            item.imageUrl,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          ),
-                          title: Text(item.name),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('\$${item.price.toStringAsFixed(2)} - ${item.category}'),
-                              if (item.documentId != null)
-                                Text(
-                                  'ID: ${item.documentId}',
-                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () {
-                                  _showEditPotteryDialog(
-                                      item, item.documentId ?? '');
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Delete Item'),
-                                      content: const Text(
-                                          'Are you sure you want to delete this item?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            _deletePotteryItem(
-                                                item.documentId ?? '');
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
+                        child: InkWell(
+                          onTap: () async {
+                            if (item.externalLink != null && item.externalLink!.isNotEmpty) {
+                              // تحسين معالجة الرابط
+                              String rawUrl = item.externalLink!;
+                              
+                              // إضافة https:// إذا لم يكن الرابط يبدأ ببروتوكول
+                              if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                                rawUrl = 'https://$rawUrl';
+                              }
+                              
+                              // تحويل الرابط إلى Uri
+                              final Uri url = Uri.parse(rawUrl);
+                              
+                              try {
+                                // محاولة فتح الرابط
+                                if (await canLaunchUrl(url)) {
+                                  // استخدام mode: LaunchMode.platformDefault للتوافق مع جميع الأنظمة
+                                  await launchUrl(
+                                    url,
+                                    mode: LaunchMode.externalApplication,
+                                    webViewConfiguration: const WebViewConfiguration(
+                                      enableJavaScript: true,
+                                      enableDomStorage: true,
                                     ),
                                   );
-                                },
-                              ),
-                            ],
+                                } else {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('لا يمكن فتح الرابط: $rawUrl')),
+                                  );
+                                }
+                              } catch (e) {
+                                debugPrint('خطأ في فتح الرابط: $e');
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('خطأ في فتح الرابط: $e')),
+                                );
+                              }
+                            }
+                          },
+                          child: ListTile(
+                            leading: Image.asset(
+                              item.imageUrl,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            ),
+                            title: Text(item.name),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('\$${item.price.toStringAsFixed(2)} - ${item.category}'),
+                                if (item.externalLink != null && item.externalLink!.isNotEmpty)
+                                  Text(
+                                    'رابط خارجي متوفر',
+                                    style: const TextStyle(
+                                      fontSize: 10, 
+                                      color: Colors.blue, 
+                                      fontWeight: FontWeight.bold
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () {
+                                    _showEditPotteryDialog(
+                                        item, item.documentId ?? '');
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Item'),
+                                        content: const Text(
+                                            'Are you sure you want to delete this item?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                            },
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              _deletePotteryItem(
+                                                  item.documentId ?? '');
+                                            },
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -593,13 +512,5 @@ class _PotteryListScreenState extends State<PotteryListScreen> {
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    priceController.dispose();
-    videoUrlController.dispose();
-    super.dispose();
   }
 }

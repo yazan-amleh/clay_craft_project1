@@ -511,7 +511,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                     InkWell(
                       onTap: () {
                         developer.log('Navigating to orders management page', name: 'admin.settings');
-                        Navigator.pushNamed(context, '/admin/orders');
+                        Navigator.pushNamed(context, AppRouter.adminOrders);
                       },
                       child: Container(
                         decoration: BoxDecoration(
